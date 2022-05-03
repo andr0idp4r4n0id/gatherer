@@ -66,6 +66,7 @@ func main() {
 					} else if CheckHTTPStatusCode400(resp) {
 						for depth <= max_depth {
 							for scanner.Scan() {
+								word = scanner.Text()
 								path += "/" + word
 								go func() {
 									resp = HeadRequest(path)
