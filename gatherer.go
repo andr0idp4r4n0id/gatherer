@@ -8,7 +8,7 @@ import (
 	"net/http"
 	"os"
 	"sync"
-	"time"
+	//"time"
 )
 
 func ReadFile(filename string) *os.File {
@@ -29,7 +29,6 @@ func CheckHTTPStatusCode200(resp *http.Response) bool {
 }
 
 func HeadRequest(url_t string, delay float64) *http.Response {
-	time.Sleep(time.Duration(delay) * time.Second)
 	resp, err := http.Head(url_t)
 	if err != nil {
 		return nil
@@ -60,30 +59,27 @@ func main() {
 			wg.Add(1)
 			go func() {
 				resp := HeadRequest(path, delay)
-				if resp == nil {
-					return
-				}
-				if CheckHTTPStatusCode200(resp) {
-					fmt.Println(path)
-					return
-				}
-				if CheckHTTPStatusCode400(resp) {
-					for depth <= max_depth {
-						for scanner.Scan() {
-							word = scanner.Text()
-							path += "/" + word
-							wg.Add(1)
-							go func() {
-								resp = HeadRequest(path, delay)
-								if resp.StatusCode <= 399 {
-									fmt.Println(path)
-									depth += 1
-								}
-								wg.Done()
-							}()
-						}
-						if depth == 1 {
-							break
+				if resp != nil {
+					if CheckHTTPStatusCode200(resp) {
+						fmt.Println(path)
+					} else if CheckHTTPStatusCode400(resp) {
+						for depth <= max_depth {
+							for scanner.Scan() {
+								word = scanner.Text()
+								path += "/" + word
+								wg.Add(1)
+								go func() {
+									resp = HeadRequest(path, delay)
+									if resp.StatusCode <= 399 {
+										fmt.Println(path)
+										depth += 1
+									}
+									wg.Done()
+								}()
+							}
+							if depth == 1 {
+								break
+							}
 						}
 					}
 
