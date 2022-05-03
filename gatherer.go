@@ -60,29 +60,30 @@ func main() {
 			go func() {
 				resp := HeadRequest(path)
 				time.Sleep(time.Duration(delay) * time.Second)
-				if resp != nil {
-					if CheckHTTPStatusCode200(resp) {
-						fmt.Println(path)
-					} else if CheckHTTPStatusCode400(resp) {
-						for depth <= max_depth {
-							for scanner.Scan() {
-								word = scanner.Text()
-								path += "/" + word
-								go func() {
-									resp = HeadRequest(path)
-									time.Sleep(time.Duration(delay) * time.Second)
-									if resp.StatusCode <= 399 {
-										fmt.Println(path)
-										depth += 1
-									}
-								}()
-							}
-							if depth == 1 {
-								break
-							}
+				if resp == nil {
+					return
+				}
+				if CheckHTTPStatusCode200(resp) {
+					fmt.Println(path)
+				} else if CheckHTTPStatusCode400(resp) {
+					for depth <= max_depth {
+						for scanner.Scan() {
+							word = scanner.Text()
+							path += "/" + word
+							go func() {
+								resp = HeadRequest(path)
+								time.Sleep(time.Duration(delay) * time.Second)
+								if resp.StatusCode <= 399 {
+									fmt.Println(path)
+									depth += 1
+								}
+							}()
 						}
-
+						if depth == 1 {
+							break
+						}
 					}
+
 				}
 				wg.Done()
 			}()
