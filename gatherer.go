@@ -70,6 +70,7 @@ func main() {
 								path += "/" + word
 								go func() {
 									resp = HeadRequest(path)
+									time.Sleep(time.Duration(delay) * time.Second)
 									if resp.StatusCode <= 399 {
 										fmt.Println(path)
 										depth += 1
