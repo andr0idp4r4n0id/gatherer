@@ -25,7 +25,7 @@ func CheckHTTPStatusCode400(resp *http.Response) bool {
 }
 
 func CheckHTTPStatusCode200(resp *http.Response) bool {
-	return resp.StatusCode == 200
+	return resp.StatusCode <= 399
 }
 
 func HeadRequest(url_t string) *http.Response {
@@ -39,16 +39,19 @@ func HeadRequest(url_t string) *http.Response {
 func main() {
 	var wg sync.WaitGroup
 	var filename string
-	var delay int
+	var delay float64
+	var max_depth int
 	conc := flag.Int("concurrency", 10, "concurrency level")
 	url_t := flag.String("url", "", "url to target.")
 	flag.StringVar(&filename, "wordlist", "", "wordlist to use.")
-	flag.IntVar(&delay, "delay", 0, "delay between each request.")
+	flag.Float64Var(&delay, "delay", 1, "delay between each request.")
+	flag.IntVar(&max_depth, "depth", 1, "max depth to request new pages when a forbidden is discovered.")
 	flag.Parse()
 	file := ReadFile(filename)
 	scanner := bufio.NewScanner(file)
 	scanner.Split(bufio.ScanLines)
 	http.DefaultTransport.(*http.Transport).TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
+	depth := 1
 	for i := 0; i < *conc; i++ {
 		for scanner.Scan() {
 			word := scanner.Text()
@@ -57,23 +60,26 @@ func main() {
 			go func() {
 				resp := HeadRequest(path)
 				time.Sleep(time.Duration(delay) * time.Second)
-				fmt.Printf("Attempting: %s                   \r\r\r\r", path)
 				if resp != nil {
 					if CheckHTTPStatusCode200(resp) {
 						fmt.Println(path)
 					} else if CheckHTTPStatusCode400(resp) {
-						for scanner.Scan() {
-							second_word := scanner.Text()
-							second_path := *url_t + word + "/" + second_word
-							second_resp := HeadRequest(second_path)
-							wg.Add(1)
-							go func() {
-								if second_resp.StatusCode == 200 {
-									fmt.Println(second_path)
-								}
-								wg.Done()
-							}()
+						for depth <= max_depth {
+							for scanner.Scan() {
+								path += "/" + word
+								go func() {
+									resp = HeadRequest(path)
+									if resp.StatusCode <= 399 {
+										fmt.Println(path)
+										depth += 1
+									}
+								}()
+							}
+							if depth == 1 {
+								break
+							}
 						}
+
 					}
 				}
 				wg.Done()
