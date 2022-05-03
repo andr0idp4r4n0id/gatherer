@@ -28,7 +28,8 @@ func CheckHTTPStatusCode200(resp *http.Response) bool {
 	return resp.StatusCode <= 399
 }
 
-func HeadRequest(url_t string) *http.Response {
+func HeadRequest(url_t string, delay float64) *http.Response {
+	time.Sleep(time.Duration(delay) * time.Second)
 	resp, err := http.Head(url_t)
 	if err != nil {
 		return nil
@@ -58,8 +59,7 @@ func main() {
 			path := *url_t + word
 			wg.Add(1)
 			go func() {
-				resp := HeadRequest(path)
-				time.Sleep(time.Duration(delay) * time.Second)
+				resp := HeadRequest(path, delay)
 				if resp == nil {
 					return
 				}
@@ -71,8 +71,7 @@ func main() {
 							word = scanner.Text()
 							path += "/" + word
 							go func() {
-								resp = HeadRequest(path)
-								time.Sleep(time.Duration(delay) * time.Second)
+								resp = HeadRequest(path, delay)
 								if resp.StatusCode <= 399 {
 									fmt.Println(path)
 									depth += 1
