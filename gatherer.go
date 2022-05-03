@@ -65,17 +65,21 @@ func main() {
 				}
 				if CheckHTTPStatusCode200(resp) {
 					fmt.Println(path)
-				} else if CheckHTTPStatusCode400(resp) {
+					return
+				}
+				if CheckHTTPStatusCode400(resp) {
 					for depth <= max_depth {
 						for scanner.Scan() {
 							word = scanner.Text()
 							path += "/" + word
+							wg.Add(1)
 							go func() {
 								resp = HeadRequest(path, delay)
 								if resp.StatusCode <= 399 {
 									fmt.Println(path)
 									depth += 1
 								}
+								wg.Done()
 							}()
 						}
 						if depth == 1 {
